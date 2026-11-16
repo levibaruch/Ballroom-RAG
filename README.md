@@ -69,5 +69,5 @@ dance_rag_agentic/
 tests/           unit (no books needed) and index tests
 deploy/          Dockerfile, docker-compose, Caddy example
 examples/widget/ the demo page widget (vanilla JS/CSS) with a local preview
-docs/            architecture, decisions, evaluation, parser comparison, deployment, limitations
+docs/            architecture, decisions, parser comparison, deployment, limitations
 ```
