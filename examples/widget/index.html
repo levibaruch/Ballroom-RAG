@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- Local preview of the demo widget against the API on your machine:
+       make api                                              (API on http://localhost:8080)
+       python3 -m http.server 8000 -d examples/widget        (this page on http://localhost:8000)
+     The API allows the origin http://localhost:8000 by default (DANCE_RAG_ALLOWED_ORIGINS). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dance RAG widget</title>
+  <style>
+    /* the tokens dance-rag.css uses (the host site defines them) */
+    :root{
+      --brand:#33475b;
+      --bg:#fffefb;--card:#ffffff;--ink:#1a1a1a;--mut:#555555;
+      --rule:#cfcfcf;--rule2:#e3e3e3;--wash:#f7f7f5;
+      --serif:Georgia,"Times New Roman",Times,serif;
+      --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
+    *{box-sizing:border-box}
+    body{font-family:var(--serif);background:var(--bg);color:var(--ink);line-height:1.6;margin:0}
+    main{max-width:48rem;margin:0 auto;padding:2rem 16px}
+  </style>
+  <link rel="stylesheet" href="dance-rag.css">
+</head>
+<body>
+  <main>
+    <h1>Dance Style RAG</h1>
+    <p>Ask a question about ballroom or Latin technique. Every fact in the answer is cited to the WDSF technique books
+       and checked against its source.</p>
+    <div class="dance-rag" data-api="http://localhost:8080"></div>
+  </main>
+  <script src="dance-rag.js" defer></script>
+</body>
+</html>

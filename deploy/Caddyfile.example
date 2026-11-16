@@ -1,0 +1,18 @@
+# ── Dance RAG API: add this block to the host Caddyfile (next to the sites already there) ──────────
+# Needs a DNS A record: rag.example.com -> the VPS IP. Caddy fetches the TLS certificate itself.
+rag.example.com {
+	# questions are short; anything bigger is not a question
+	request_body {
+		max_size 8KB
+	}
+	reverse_proxy localhost:8090 {
+		# the answer streams its steps (server-sent events): pass every chunk on at once
+		flush_interval -1
+		lb_try_duration 2s
+	}
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+}

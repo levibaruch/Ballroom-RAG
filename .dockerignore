@@ -1,0 +1,12 @@
+# The image holds only the code: books, extractions, caches and environments stay out
+# (the index is mounted as a volume, see deploy/docker-compose.yml).
+.venv*
+theory/
+extractions/
+cache/
+_old/
+parser_bakeoff/
+**/__pycache__/
+**/.pytest_cache/
+.git/
+*.ipynb

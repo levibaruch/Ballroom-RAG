@@ -1,0 +1,6 @@
+# bibr environment (.venv-bibr): only for extracting text and tables from the PDFs (Apple Silicon: MLX OCR).
+# Python 3.12. Also needs libmagic: `brew install libmagic`. https://github.com/scienceverse/bibr
+bibr==0.7.4
+mlx==0.32.4
+mlx-vlm==0.7.11
+python-magic==0.4.27

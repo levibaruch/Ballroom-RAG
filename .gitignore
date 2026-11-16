@@ -1,0 +1,27 @@
+# Environments
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.ipynb_checkpoints/
+
+# Book material: copyrighted (WDSF technique books). Put your own copies in theory/<latin|standard>/<Dance>.pdf.
+theory/
+extractions/
+
+# Everything built from the books (indexes, caches, traces, eval runs): rebuilt with `make build`
+cache/
+
+# Old material kept locally, not part of the repo
+_old/
+
+# Deployment secrets and API keys (deploy/.env.example shows the lines)
+deploy/.env
+
+# Parser comparison: local research material (page images, book text, scores)
+parser_bakeoff/
+
+# The gold questions are private (they quote the books); the format is in gold/example/
+dance_rag_agentic/evaluation/gold/draft/

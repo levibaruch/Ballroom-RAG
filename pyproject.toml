@@ -1,0 +1,55 @@
+[project]
+name = "dance-style-rag"
+version = "0.1.0"
+description = "Constrained agentic RAG over the WDSF dance technique books"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+# The versions the system was built and tested with (2026-11-13). uv.lock pins every transitive package.
+dependencies = [
+    "numpy==2.4.6",
+    "pandas==3.1.0",
+    "pyarrow==26.0.1",                 # pandas 3 stores the index text columns as Arrow strings
+    "pymupdf==2.1",
+    "rank-bm25==0.2.2",
+    "sentence-transformers==6.2.0",
+    "torch==2.15.0",                   # CPU build on Linux (VPS / Docker), see [tool.uv.sources]
+    "transformers==5.22.1",
+    "pydantic-ai-slim[openai]==2.66.0",
+    "openai==3.45.0",
+    "requests==2.34.2",
+    "starlette==1.10.0",
+    "uvicorn==0.54.0",
+    "fastapi==0.162.7",                # the public demo API (dance_rag_agentic/apps/api.py)
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "httpx==0.28.1",                   # starlette's TestClient (API tests)
+    "ruff==0.14.5",                    # lint (make lint)
+]
+
+[tool.uv]
+package = false                        # an application run from the repository root, not a library to install
+
+# No GPU on the VPS: on Linux torch comes from the CPU wheel index (about 5x smaller); macOS uses PyPI as usual.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["cache", "theory", "extractions", "_old", "parser_bakeoff"]
+
+[tool.ruff.lint]
+# pyflakes + pycodestyle. Not enforced: long lines (E501) and lambda assignments (E731), and no formatter: the code
+# keeps hand-aligned inline comments that a formatter would rewrite (~4,000 lines).
+select = ["F", "E", "W"]
+ignore = ["E501", "E731"]

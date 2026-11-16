@@ -1,0 +1,38 @@
+[
+  {
+    "id": "example-01",
+    "question": "what is the timing of step 3 of <figure> for the lady",
+    "language": "en",
+    "variations": ["short", "lowercase"],
+    "expected_kind": "FIGURE",
+    "dances": ["<Dance>"],
+    "figures": ["<Figure>"],
+    "role": "lady",
+    "steps": [3],
+    "aspect": "timing",
+    "answer": "<the reference answer, written from the book text only>",
+    "sources": [
+      {"dance": "<Dance>", "page": 0, "section_id": 0, "quote": "<a short exact quote from that block>"}
+    ],
+    "tests": "<what this question tests>",
+    "notes": "",
+    "status": "draft"
+  },
+  {
+    "id": "example-02",
+    "question": "Can you recommend a good restaurant near the venue?",
+    "language": "en",
+    "variations": [],
+    "expected_kind": "OUT_OF_SCOPE",
+    "dances": [],
+    "figures": [],
+    "role": null,
+    "steps": [],
+    "aspect": null,
+    "answer": "<what the system should say: a friendly reply about what it can help with>",
+    "sources": [],
+    "tests": "a non-dance question is refused kindly, without citations",
+    "notes": "",
+    "status": "draft"
+  }
+]

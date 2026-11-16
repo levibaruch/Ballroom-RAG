@@ -1,0 +1,48 @@
+# Which Ollama models dance_rag_agentic uses. Edit this file to change the default for every run.
+#
+# Order of precedence (strongest first):
+#   1. command-line flags:  --answer-model qwen3.6:35b  --decision-model pplx-decider-flash:4b
+#   2. environment:         DANCE_RAG_AGENTIC_ANSWER_MODEL=...  DANCE_RAG_AGENTIC_DECISION_MODEL=...
+#   3. this file
+#
+# See what is installed and what fits which role:   python -m dance_rag_agentic.agent.models
+#   answer model   = needs Ollama capabilities "completion" + "tools" (searching agents and answer writer)
+#   decision model = needs Ollama capability "decision" (kind/aspect choices, yes/no checks, claim judge)
+#
+# Context length: set ~32k in the Ollama app. The default 131k made the two models evict each other.
+
+[models]
+# Default = Ollama Cloud since 2026-11-13 (faster; gpt-oss:120b answered better than 20b in the cloud eval).
+# Book text + questions go to ollama.com and cost per token ([prices]). Local, free, slower:
+#   answer = "gpt-oss:20b"   decision = "autotrust-jev"   (or pplx-decider-flash:4b), or use the CLI flags.
+# Faster answer model on the Cerebras API: answer = "cerebras:gpt-oss-120b" (CEREBRAS_API_KEY in deploy/.env).
+answer = "gpt-oss:120b-cloud"
+decision = "clef:cloud"
+# gpt-oss reasoning effort for the answer model: low / medium / high (2026-11-14: low, user's call; before that
+# unset = provider default ~medium). Env DANCE_RAG_AGENTIC_REASONING overrides.
+reasoning = "medium"
+
+[ollama]
+url = "http://localhost:11434"
+# How long Ollama keeps a model loaded after its last request (Ollama's default is 5 minutes). A run uses the
+# answer model for minutes at a time, so the decision model was unloaded and reloaded in between.
+# Sent with every decision call and by `python -m dance_rag_agentic.agent.models --warm`. "-1" = until Ollama stops.
+keep_alive = "30m"
+
+[prices]
+# USD per 1M tokens, [input, output]. Used only for the token/cost table in the trace and eval files.
+# A model not listed here is shown without cost (local models cost nothing per token).
+# Source: https://ollama.com/pricing (checked 2026-11-12). Update when prices change.
+"gpt-oss:20b-cloud" = [0.07, 0.30]
+"gpt-oss:120b-cloud" = [0.15, 0.60]
+"clef:cloud" = [0.24, 0.0]        # decision models bill input tokens only
+"cerebras:gpt-oss-120b" = [0.35, 0.75]   # Cerebras API (checked 2026-11-14, aggregators; see cloud.cerebras.ai)
+
+[cloud]
+# Ollama Cloud models offered next to the installed ones (web viewer dropdowns, --answer-model / --decision-model).
+# They run on ollama.com, not on this Mac: book text and questions leave the machine, billed per token ([prices]).
+# Needs `ollama signin` and a plan with credits. On first use the small cloud stub is pulled (no weights).
+# "cerebras:..." runs on the Cerebras API (answer model only, ~3-5x faster than Ollama Cloud); needs CEREBRAS_API_KEY
+# in deploy/.env or the environment. Book text and questions then go to Cerebras.
+answer = ["gpt-oss:20b-cloud", "gpt-oss:120b-cloud", "cerebras:gpt-oss-120b"]
+decision = ["clef:cloud"]

@@ -1,0 +1,24 @@
+# Lint + unit tests on every push and pull request. No books, no index, no models are needed:
+# tests/index is skipped automatically when cache/agentic/index_v4 is missing.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.12"
+      - name: Install (locked versions; torch is the CPU build on Linux)
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check dance_rag_agentic tests
+      - name: Unit tests
+        env:
+          HF_HUB_OFFLINE: "1"          # unit tests never load the embedding model
+        run: uv run pytest -q

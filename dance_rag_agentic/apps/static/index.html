@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dance RAG viewer</title>
+<style>
+/* ------------------------------------------------------------------ theme */
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --panel-2: #f0eee9; --line: #e2dfd8; --text: #1f1d1a; --muted: #6d6860;
+  --accent: #b4462f; --accent-soft: #f6e3dd;
+  --code: #3a6ea5; --code-soft: #e2ecf7;           /* node done by code */
+  --decide: #7a4fb0; --decide-soft: #ece4f6;       /* decision model */
+  --llm: #b07a12; --llm-soft: #f7ecd5;             /* answer model */
+  --ok: #2e7d4f; --ok-soft: #dff1e6; --bad: #b3261e; --bad-soft: #f8dedb;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161514; --panel: #1f1e1c; --panel-2: #282624; --line: #363330; --text: #ebe8e3; --muted: #9b958c;
+    --accent: #e0775f; --accent-soft: #3a2420;
+    --code: #79a7d9; --code-soft: #1d2a38; --decide: #b18ddf; --decide-soft: #2b2238; --llm: #dcaa48; --llm-soft: #33291a;
+    --ok: #6cc28e; --ok-soft: #1c2f23; --bad: #ef7b72; --bad-soft: #3a1f1d;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); display: flex; }
+button, select, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+/* ------------------------------------------------------------------ sidebar: runs */
+aside { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; height: 100vh; }
+aside header { padding: 16px; border-bottom: 1px solid var(--line); }
+aside h1 { font-size: 15px; margin: 0 0 10px; letter-spacing: .02em; }
+aside h1 span { color: var(--accent); }
+#newButton { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+#runList { overflow-y: auto; flex: 1; padding: 6px; }
+.run { padding: 9px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px; }
+.run:hover { background: var(--panel-2); }
+.run.active { background: var(--accent-soft); }
+.run .q { font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.run .meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+/* ------------------------------------------------------------------ main */
+main { flex: 1; overflow-y: auto; height: 100vh; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 28px 80px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+#askPanel { padding: 16px; margin-bottom: 22px; }
+#questionInput { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--bg); }
+.askRow { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.askRow label { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.askRow select { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); }
+#askButton { margin-left: auto; padding: 8px 20px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-weight: 600; }
+#askButton:disabled { opacity: .5; cursor: default; }
+#askMessage { font-size: 13px; color: var(--bad); margin-top: 8px; min-height: 0; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 1px 8px; border-radius: 99px; background: var(--panel-2); color: var(--muted); white-space: nowrap; }
+.chip.route { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); } .chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip.code { background: var(--code-soft); color: var(--code); } .chip.decide { background: var(--decide-soft); color: var(--decide); }
+.chip.llm { background: var(--llm-soft); color: var(--llm); }
+.spinner { width: 10px; height: 10px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#runHeader h2 { font-size: 22px; line-height: 1.3; margin: 0 0 10px; font-weight: 650; }
+#runMeta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.tabs button { background: none; border: 0; padding: 8px 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.hidden { display: none !important; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+/* ------------------------------------------------------------------ answer */
+#answerCard { padding: 22px 26px; }
+.answer h1, .answer h2, .answer h3, .answer h4 { font-size: 16px; margin: 18px 0 6px; }
+.answer h1:first-child, .answer h2:first-child, .answer h3:first-child { margin-top: 0; }
+.answer p { margin: 0 0 10px; } .answer ul, .answer ol { margin: 0 0 10px; padding-left: 22px; } .answer li { margin: 3px 0; }
+.answer table { border-collapse: collapse; margin: 6px 0 12px; font-size: 13.5px; }
+.answer th, .answer td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.answer code { font-family: var(--mono); font-size: 13px; background: var(--panel-2); padding: 0 4px; border-radius: 4px; }
+.fn { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 5px; margin: 0 1px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); cursor: pointer; vertical-align: 2px; }
+.fn:hover { background: var(--accent); color: #fff; }
+.warnings { margin-top: 16px; padding: 12px 16px; border-radius: 10px; background: var(--bad-soft); color: var(--bad); font-size: 13.5px; }
+.warnings ul { margin: 4px 0 0; padding-left: 18px; }
+h3.section { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 10px; }
+.source { margin-bottom: 12px; overflow: hidden; }
+.source > summary { padding: 11px 16px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; list-style: none; }
+.source > summary::-webkit-details-marker { display: none; }
+.source > summary .label { font-weight: 600; font-size: 14px; }
+.source.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.sourceBody { padding: 0 16px 14px; }
+.sectionLabel { font-size: 12.5px; color: var(--muted); margin: 10px 0 6px; display: flex; gap: 8px; align-items: center; }
+.cited { border-left: 3px solid var(--accent); padding-left: 10px; }
+.prose { font-size: 14px; margin: 0 0 8px; white-space: pre-wrap; }
+.tableScroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table.chart { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+table.chart th, table.chart td { padding: 6px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.chart th { background: var(--panel-2); font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+table.chart td:first-child, table.chart th:first-child { position: sticky; left: 0; background: var(--panel-2); font-weight: 600; white-space: nowrap; }
+table.chart tr:last-child td { border-bottom: 0; }
+table.chart td { min-width: 110px; }
+
+/* ------------------------------------------------------------------ steps */
+.flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 8px; }
+.flow .arrow { color: var(--muted); font-size: 12px; }
+.flow .chip { cursor: pointer; font-size: 12px; padding: 3px 9px; }
+.legend { font-size: 12px; color: var(--muted); display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+.node { margin-bottom: 10px; overflow: hidden; }
+.node > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: grid; grid-template-columns: 22px 150px 1fr auto; gap: 10px; align-items: baseline; }
+.node > summary::-webkit-details-marker { display: none; }
+.node .index { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.node .name { font-weight: 650; font-size: 14px; }
+.node .message { font-size: 13.5px; color: var(--muted); }
+.node .badges { display: flex; gap: 5px; justify-content: flex-end; flex-wrap: wrap; }
+.node.kind-code { border-left: 4px solid var(--code); } .node.kind-decide { border-left: 4px solid var(--decide); } .node.kind-llm { border-left: 4px solid var(--llm); }
+.nodeBody { padding: 4px 16px 14px 46px; border-top: 1px solid var(--line); }
+.item { margin-top: 10px; }
+.item .itemLabel { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+pre { margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; background: var(--panel-2); padding: 8px 10px; border-radius: 6px; max-height: 420px; overflow: auto; }
+.tool { margin-top: 6px; }
+.tool > summary { cursor: pointer; font-family: var(--mono); font-size: 12px; padding: 4px 0; color: var(--llm); }
+.bars { display: grid; grid-template-columns: max-content 44px 1fr; gap: 3px 10px; align-items: center; font-size: 12.5px; max-width: 560px; }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--decide); border-radius: 4px; }
+.bars .marked { font-weight: 700; color: var(--decide); }
+.claims { display: flex; flex-direction: column; gap: 6px; }
+.claim { display: grid; grid-template-columns: 44px 70px 1fr; gap: 10px; align-items: start; font-size: 13px; }
+.claim .bar { margin-top: 7px; } .claim .bar > div { background: var(--ok); } .claim.no .bar > div { background: var(--bad); }
+.claim .ids { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+.errorBox { padding: 14px 16px; border-radius: 10px; background: var(--bad-soft); color: var(--bad); font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; margin-bottom: 14px; }
+
+.roleToggle { display: inline-flex; gap: 2px; text-transform: none; letter-spacing: 0; }
+.roleToggle button { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 1px 10px; font-size: 12px; color: var(--text); }
+.roleToggle button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ------------------------------------------------------------------ notes */
+#notesPanel { padding: 14px 16px; margin-bottom: 18px; }
+#notesPanel h4, #notesView h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.note { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.note:last-of-type { border-bottom: 0; }
+.note .noteText { white-space: pre-wrap; }
+.note .noteMeta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 3px; align-items: center; font-size: 11.5px; color: var(--muted); }
+.note .noteActions button { background: none; border: 0; color: var(--muted); font-size: 12px; padding: 2px 4px; }
+.note .noteActions button:hover { color: var(--accent); }
+.noteForm { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.noteForm textarea { width: 100%; min-height: 56px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.noteForm .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.noteForm select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+.noteForm .save { margin-left: auto; padding: 6px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-weight: 600; }
+.chip.tag { background: var(--accent-soft); color: var(--accent); }
+.noteButton { background: none; border: 1px solid var(--line); border-radius: 99px; font-size: 11.5px; padding: 0 8px; color: var(--muted); }
+.noteButton:hover { color: var(--accent); border-color: var(--accent); }
+#notesView .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+#notesView .filters button { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 2px 10px; font-size: 12.5px; }
+#notesView .filters button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+#notesView .filters .copy { margin-left: auto; border-radius: 8px; }
+.noteRun { padding: 14px 16px; margin-bottom: 12px; }
+.noteRun .runTitle { font-weight: 650; cursor: pointer; margin-bottom: 4px; }
+.noteRun .runTitle:hover { color: var(--accent); }
+.sideButtons { display: flex; gap: 6px; }
+.sideButtons button { flex: 1; }
+
+@media (max-width: 800px) {
+  body { flex-direction: column; } aside { width: 100%; height: auto; max-height: 40vh; } main { height: auto; }
+  .wrap { padding: 16px; } .node > summary { grid-template-columns: 22px 1fr; } .node .message, .node .badges { grid-column: 2; justify-content: flex-start; }
+  .nodeBody { padding-left: 16px; }
+}
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Dance <span>RAG</span> viewer</h1>
+    <div class="sideButtons">
+      <button id="newButton">+ New question</button>
+      <button id="allNotesButton" style="padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2)">All notes</button>
+    </div>
+  </header>
+  <div id="runList"></div>
+</aside>
+
+<main>
+  <div class="wrap">
+    <section id="askPanel" class="card">
+      <textarea id="questionInput" placeholder="Ask a technique question, e.g. How do I do a left turn in the rumba?"></textarea>
+      <div class="askRow">
+        <label>answer model <select id="answerModel"></select></label>
+        <label>decision model <select id="decisionModel"></select></label>
+        <label><input type="checkbox" id="useJudge" checked> judge claims</label>
+        <button id="askButton">Ask</button>
+      </div>
+      <div id="cloudNote" style="font-size:12.5px;color:var(--llm);margin-top:6px"></div>
+      <div id="askMessage"></div>
+    </section>
+
+    <section id="runView" class="hidden">
+      <div id="runHeader"><h2 id="runQuestion"></h2><div id="runMeta"></div></div>
+      <section id="notesPanel" class="card">
+        <h4>Notes on this run</h4>
+        <div id="noteList"></div>
+        <div class="noteForm">
+          <textarea id="noteText" placeholder="What is right or wrong here? (Cmd+Enter saves)"></textarea>
+          <div class="row">
+            <select id="noteTag"></select>
+            <select id="noteNode"><option value="">whole run</option></select>
+            <button class="save" id="saveNote">Save note</button>
+          </div>
+        </div>
+      </section>
+      <div class="tabs">
+        <button data-tab="answer" class="active">Answer</button>
+        <button data-tab="steps">Steps</button>
+        <button data-tab="raw">Raw log</button>
+      </div>
+      <div id="tab-answer"></div>
+      <div id="tab-steps" class="hidden"></div>
+      <div id="tab-raw" class="hidden"><pre id="rawLog"></pre></div>
+    </section>
+    <section id="notesView" class="hidden">
+      <h2 style="font-size:22px;margin:0 0 12px">All notes</h2>
+      <div class="filters" id="noteFilters"></div>
+      <div id="notesByRun"></div>
+    </section>
+    <div id="nothing" class="empty">Ask a question, or pick an earlier run on the left.</div>
+  </div>
+</main>
+
+<script>
+// ------------------------------------------------------------------ helpers
+const $ = (selector) => document.querySelector(selector);
+const escapeHtml = (text) => String(text ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const formatNumber = (n) => (n ?? 0).toLocaleString("en-US");
+
+// which kind of worker each node is (colors in the flow strip and node cards)
+const NODE_KIND = {ClassifyKind: "decide", JudgeClaims: "decide",
+                   Answer: "llm", TechniqueAgent: "llm", UnsureAgent: "llm", FillGap: "llm", RepairClaims: "llm", Polish: "llm"};
+const nodeKind = (name) => NODE_KIND[name] || "code";
+const KIND_LABEL = {code: "code", decide: "decision model", llm: "answer model"};
+
+let currentRun = null;      // name of the run on screen
+let pollTimer = null;
+let chosenTab = null;       // a tab the user clicked (live runs switch to Answer at the end only if not)
+
+// ------------------------------------------------------------------ inline markdown (answers are markdown-ish)
+function inline(text) {
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  // footnotes [1] or [1, 2] -> chips that open the source
+  html = html.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, numbers) =>
+    numbers.split(",").map((n) => `<span class="fn" data-fn="${n.trim()}">${n.trim()}</span>`).join(""));
+  return html;
+}
+
+function markdown(text) {
+  const lines = String(text || "").split("\n");
+  let html = "", list = null, tableRows = [], paragraph = [];
+  const flushParagraph = () => { if (paragraph.length) { html += `<p>${paragraph.map(inline).join("<br>")}</p>`; paragraph = []; } };
+  const flushList = () => { if (list) { html += `</${list}>`; list = null; } };
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    const rows = tableRows.filter((row) => !/^\s*\|?\s*:?-{2,}/.test(row)).map((row) =>
+      row.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim()));
+    html += "<table>" + rows.map((cells, index) => "<tr>" + cells.map((cell) =>
+      index === 0 ? `<th>${inline(cell)}</th>` : `<td>${inline(cell)}</td>`).join("") + "</tr>").join("") + "</table>";
+    tableRows = [];
+  };
+  for (const line of lines) {
+    if (/^\s*\|.*\|\s*$/.test(line)) { flushParagraph(); flushList(); tableRows.push(line); continue; }
+    flushTable();
+    let match;
+    if ((match = line.match(/^\s*(#{1,4})\s+(.*)$/))) { flushParagraph(); flushList(); html += `<h${match[1].length + 1}>${inline(match[2])}</h${match[1].length + 1}>`; }
+    else if ((match = line.match(/^\s*[-*•]\s+(.*)$/))) { flushParagraph(); if (list !== "ul") { flushList(); html += "<ul>"; list = "ul"; } html += `<li>${inline(match[1])}</li>`; }
+    else if ((match = line.match(/^\s*\d+[.)]\s+(.*)$/))) { flushParagraph(); if (list !== "ol") { flushList(); html += "<ol>"; list = "ol"; } html += `<li>${inline(match[1])}</li>`; }
+    else if (!line.trim()) { flushParagraph(); flushList(); }
+    else { flushList(); paragraph.push(line.trim()); }
+  }
+  flushParagraph(); flushList(); flushTable();
+  return html;
+}
+
+// ------------------------------------------------------------------ sources: chart blocks become step tables
+// a chart block = steps separated by blank lines; each step = "Dance | FIGURE - Side 1 | Step 3" then "Column: value" lines
+function chartTable(blockText) {
+  const steps = blockText.split(/\n\s*\n/).map((stepText) => {
+    const [first, ...rest] = stepText.split("\n");
+    if (!first.includes("|")) return null;
+    const values = {};
+    for (const line of rest) {
+      const colon = line.indexOf(": ");
+      if (colon > 0) values[line.slice(0, colon).trim()] = line.slice(colon + 2).trim();
+    }
+    return {step: first.split("|").pop().trim().replace(/^Step\s*/, ""), values};
+  });
+  if (!steps.length || steps.some((step) => !step)) return null;
+  const columns = [...new Set(steps.flatMap((step) => Object.keys(step.values)))];
+  return `<div class="tableScroll"><table class="chart"><tr><th>Step</th>${columns.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}</tr>` +
+    steps.map((step) => `<tr><td>${escapeHtml(step.step)}</td>${columns.map((c) => `<td>${escapeHtml(step.values[c] ?? "")}</td>`).join("")}</tr>`).join("") +
+    "</table></div>";
+}
+
+function renderSources(sources) {
+  return sources.map((source) => {
+    const sections = source.sections.map((section) => {
+      const blocks = section.blocks.filter((block) => section.kind === "chart" || block.footnote || section.blocks.length <= 6);
+      const cited = section.blocks.some((block) => block.footnote);
+      const body = blocks.map((block) => {
+        const table = section.kind === "chart" ? chartTable(block.text) : null;
+        const marker = block.footnote ? `<span class="fn" data-fn="${block.footnote}">${block.footnote}</span> ` : "";
+        return `<div class="${block.footnote ? "cited" : ""}" style="margin-bottom:8px">${table ? marker + table : `<p class="prose">${marker}${escapeHtml(block.text)}</p>`}</div>`;
+      }).join("");
+      const hidden = section.blocks.length - blocks.length;
+      return `<div class="sectionLabel">${escapeHtml(section.label)} ${cited ? '<span class="chip route">cited</span>' : ""}</div>${body}` +
+        (hidden ? `<div class="sectionLabel">${hidden} more uncited blocks in this section</div>` : "");
+    }).join("");
+    const role = /\(Man\)/i.test(source.label) ? "Man" : /\(Lady\)/i.test(source.label) ? "Lady" : "";
+    return `<details class="source card" open data-role="${role}" data-numbers="${source.numbers.join(",")}">
+      <summary>${source.numbers.map((n) => `<span class="fn">${n}</span>`).join("")}<span class="label">${escapeHtml(source.label.split("  +  ")[0])}</span>
+      ${source.sections.length > 1 ? `<span class="chip">+${source.sections.length - 1} more parts</span>` : ""}</summary>
+      <div class="sourceBody">${sections}</div></details>`;
+  }).join("");
+}
+
+// ------------------------------------------------------------------ one run: events -> nodes, answer, meta
+function groupEvents(events) {
+  const run = {start: null, final: null, error: null, nodes: []};
+  for (const event of events) {
+    if (event.type === "start") run.start = event;
+    else if (event.type === "final") run.final = event;
+    else if (event.type === "error") run.error = event;
+    else if (event.type === "node") run.nodes.push({name: event.node, started: event.time, items: [], end: null});
+    else if (event.type === "end" && run.nodes.length) run.nodes[run.nodes.length - 1].end = event;
+    else if (run.nodes.length) run.nodes[run.nodes.length - 1].items.push(event);
+  }
+  return run;
+}
+
+function tokenTotals(tokenRows) {
+  const total = {input: 0, output: 0, usd: null};
+  for (const row of tokenRows || []) {
+    total.input += row.input; total.output += row.output;
+    if (row.usd != null) total.usd = (total.usd || 0) + row.usd;
+  }
+  return total;
+}
+
+function renderMeta(run, running, lastTime) {
+  const chips = [];
+  if (running) chips.push(`<span class="chip route"><span class="spinner"></span> running</span>`);
+  if (run.final) chips.push(`<span class="chip route">${escapeHtml(run.final.route)}</span>`);
+  if (run.error) chips.push(`<span class="chip bad">error</span>`);
+  if (run.start) {
+    chips.push(`<span class="chip llm">answer: ${escapeHtml(run.start.answer_model)}</span>`);
+    chips.push(`<span class="chip decide">decision: ${escapeHtml(run.start.decision_model)}</span>`);
+    chips.push(`<span class="chip">${Math.round(lastTime - run.start.time)} s</span>`);
+  }
+  if (run.final) {
+    const total = tokenTotals(run.final.tokens);
+    chips.push(`<span class="chip">${formatNumber(total.input)} tokens in / ${formatNumber(total.output)} out</span>`);
+    if (total.usd != null) chips.push(`<span class="chip">$${total.usd.toFixed(4)}</span>`);
+  }
+  $("#runMeta").innerHTML = chips.join("");
+}
+
+function renderAnswer(run, running) {
+  if (run.error) return `<div class="errorBox">${escapeHtml(run.error.message)}</div>`;
+  if (!run.final) return `<div class="empty">${running ? '<span class="spinner"></span> Working… see the Steps tab.' : "This run did not finish."}</div>`;
+  const final = run.final;
+  let html = "";
+  if (final.split)
+    html += `<div class="card" style="padding:8px 12px;margin-bottom:8px"><strong>Question split in two</strong><br>` +
+      `Books: ${escapeHtml(final.split.books || "none")}<br>General advice: ${escapeHtml(final.split.general || "none")}</div>`;
+  if (final.body) {
+    html += `<div id="answerCard" class="card answer">${markdown(final.body)}`;
+    if (final.warnings && final.warnings.length)
+      html += `<div class="warnings"><strong>Warnings</strong><ul>${final.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul></div>`;
+    html += "</div>";
+  }
+  if (final.general)
+    html += `<h3 class="section">${escapeHtml(final.general_heading || "General advice, not from the books")}</h3>` +
+      `<div class="card answer" style="border-left:4px dashed var(--muted, #999)">${markdown(final.general)}</div>`;
+  if (final.sources && final.sources.length) {
+    const roles = new Set(final.sources.map((source) => /\(Man\)/i.test(source.label) ? "Man" : /\(Lady\)/i.test(source.label) ? "Lady" : ""));
+    const toggle = roles.has("Man") && roles.has("Lady") ? `<span class="roleToggle">${["Both", "Man", "Lady"].map((role) =>
+      `<button data-role-filter="${role}" class="${role === roleFilter ? "active" : ""}">${role === "Man" ? "Man (leader)" : role === "Lady" ? "Lady (follower)" : "Both"}</button>`).join("")}</span>` : "";
+    html += `<h3 class="section" style="display:flex;align-items:center;gap:12px">Charts and sources from the books ${toggle}</h3>${renderSources(final.sources)}`;
+  }
+  if (final.tokens && final.tokens.length) {
+    html += `<h3 class="section">Tokens</h3><div class="card" style="padding:4px 0"><div class="tableScroll" style="border:0"><table class="chart"><tr><th>Role</th><th>Model</th><th>Calls</th><th>Input</th><th>Output</th><th>USD</th></tr>` +
+      final.tokens.map((row) => `<tr><td>${row.role}</td><td>${escapeHtml(row.model)}</td><td>${row.calls}</td><td>${formatNumber(row.input)}</td><td>${formatNumber(row.output)}</td><td>${row.usd != null ? "$" + row.usd.toFixed(4) : "–"}</td></tr>`).join("") +
+      "</table></div></div>";
+  }
+  return html;
+}
+
+function renderData(data) {
+  if (data.kind === "probabilities") {
+    return `<div class="bars">${data.items.map(([name, value]) =>
+      `<span class="${name === data.marked ? "marked" : ""}">${escapeHtml(name)}</span><span>${value.toFixed(2)}</span><div class="bar"><div style="width:${Math.round(value * 100)}%"></div></div>`).join("")}</div>`;
+  }
+  if (data.kind === "claims") {
+    if (!data.items.length) return `<div class="message">no claims found</div>`;
+    return `<div class="claims">${data.items.map((claim) => {
+      const ok = claim.p >= data.threshold && (!claim.verdict || claim.verdict === "SUPPORTED");
+      const label = !claim.verdict ? (ok ? "ok" : "NO") : {SUPPORTED: "ok", CONTRADICTED: "contradicted", NOT_IN_EVIDENCE: "not in evidence"}[claim.verdict] || claim.verdict;
+      return `<div class="claim ${ok ? "" : "no"}"><span class="chip ${ok ? "ok" : "bad"}">${label}</span>
+        <div><div class="bar"><div style="width:${Math.round(claim.p * 100)}%"></div></div><span class="ids">p ${claim.p.toFixed(2)}</span></div>
+        <div>${escapeHtml(claim.claim)} <span class="ids">[${claim.ids.join(", ")}]</span></div></div>`;
+    }).join("")}</div>`;
+  }
+  return "";
+}
+
+function renderItem(item) {
+  if (item.type === "tool") {
+    return `<details class="tool"><summary>▸ ${escapeHtml(item.call)}</summary><pre>${escapeHtml((item.lines || []).join("\n"))}</pre></details>`;
+  }
+  // a "show" event: label, then structured data (bars, claims) or the plain lines
+  let body = "";
+  if (item.data) body = renderData(item.data);
+  else if (item.lines && item.lines.length) body = `<pre>${escapeHtml(item.lines.join("\n"))}</pre>`;
+  return `<div class="item"><div class="itemLabel">${escapeHtml(item.label)}</div>${body}</div>`;
+}
+
+function renderSteps(run, running) {
+  if (!run.nodes.length) return `<div class="empty">No steps recorded.</div>`;
+  const flow = run.nodes.map((node, index) =>
+    `<span class="chip ${nodeKind(node.name)}" data-node="${index}">${node.name}${node.end ? ` · ${node.end.seconds}s` : running ? ' <span class="spinner"></span>' : ""}</span>`).join('<span class="arrow">→</span>');
+  const legend = Object.entries(KIND_LABEL).map(([kind, label]) => `<span class="chip ${kind}">${label}</span>`).join("");
+  const cards = run.nodes.map((node, index) => {
+    const isLast = index === run.nodes.length - 1;
+    const total = tokenTotals(node.end && node.end.tokens);
+    const badges = [];
+    if (node.end) badges.push(`<span class="chip">${node.end.seconds}s</span>`);
+    else if (running && isLast) badges.push(`<span class="chip route"><span class="spinner"></span> working</span>`);
+    if (total.input || total.output) badges.push(`<span class="chip ${nodeKind(node.name)}">${formatNumber(total.input)} in / ${formatNumber(total.output)} out</span>`);
+    const toolCount = node.items.filter((item) => item.type === "tool").length;
+    if (toolCount) badges.push(`<span class="chip llm">${toolCount} tool calls</span>`);
+    const open = (running && isLast) || openNodes.has(index) ? "open" : "";
+    return `<details class="node card kind-${nodeKind(node.name)}" data-index="${index}" ${open}>
+      <summary><span class="index">${index + 1}</span><span class="name">${node.name}</span>
+      <span class="message">${escapeHtml(node.end ? node.end.message : "")}</span><span class="badges">${badges.join("")}<button class="noteButton" data-note-node="${index + 1} ${node.name}">+ note</button></span></summary>
+      <div class="nodeBody">${node.items.map(renderItem).join("") || '<div class="item message">no details</div>'}</div></details>`;
+  }).join("");
+  const error = run.error ? `<div class="errorBox">${escapeHtml(run.error.message)}</div>` : "";
+  return `<div class="flow">${flow}</div><div class="legend">${legend}<span>click a step to open it</span></div>${error}${cards}`;
+}
+
+// ------------------------------------------------------------------ role filter for chart sources
+let roleFilter = "Both";
+function applyRoleFilter() {
+  document.querySelectorAll(".source[data-role]").forEach((source) =>
+    source.classList.toggle("hidden", roleFilter !== "Both" && source.dataset.role && source.dataset.role !== roleFilter));
+  document.querySelectorAll("[data-role-filter]").forEach((button) => button.classList.toggle("active", button.dataset.roleFilter === roleFilter));
+}
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-role-filter]");
+  if (button) { roleFilter = button.dataset.roleFilter; applyRoleFilter(); }
+});
+
+// ------------------------------------------------------------------ tabs, run list, polling
+const openNodes = new Set();          // node cards the user opened (kept open while a run refreshes)
+document.addEventListener("toggle", (event) => {
+  const node = event.target.closest && event.target.closest(".node");
+  if (node && event.target === node) node.open ? openNodes.add(+node.dataset.index) : openNodes.delete(+node.dataset.index);
+}, true);
+
+function showTab(tab) {
+  document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  for (const name of ["answer", "steps", "raw"]) $(`#tab-${name}`).classList.toggle("hidden", name !== tab);
+}
+document.querySelectorAll(".tabs button").forEach((button) => button.addEventListener("click", () => { chosenTab = button.dataset.tab; showTab(chosenTab); }));
+
+document.addEventListener("click", (event) => {
+  const footnote = event.target.closest(".fn[data-fn]");
+  if (footnote && footnote.closest("#answerCard")) {        // open and flash the source that holds this footnote
+    const source = [...document.querySelectorAll(".source")].find((s) => s.dataset.numbers.split(",").includes(footnote.dataset.fn));
+    if (source) { source.open = true; source.scrollIntoView({behavior: "smooth", block: "start"}); source.classList.remove("flash"); void source.offsetWidth; source.classList.add("flash"); }
+  }
+  const flowChip = event.target.closest(".flow .chip[data-node]");
+  if (flowChip) {
+    const card = document.querySelector(`.node[data-index="${flowChip.dataset.node}"]`);
+    if (card) { card.open = true; card.scrollIntoView({behavior: "smooth", block: "start"}); }
+  }
+});
+
+async function loadRuns() {
+  const response = await fetch("/api/runs");
+  const {runs, running} = await response.json();
+  $("#askButton").disabled = Boolean(running);
+  $("#askButton").textContent = running ? "Busy…" : "Ask";
+  $("#runList").innerHTML = runs.map((run) => {
+    const when = run.name.replace(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/, "$3-$2 $4:$5");
+    const status = run.running ? '<span class="chip route"><span class="spinner"></span></span>' : run.error ? '<span class="chip bad">error</span>' :
+      !run.finished ? '<span class="chip bad">unfinished</span>' : run.route ? `<span class="chip route">${run.route}</span>` : !run.structured ? '<span class="chip">text log</span>' : "";
+    return `<div class="run ${run.name === currentRun ? "active" : ""}" data-name="${run.name}"><div class="q">${escapeHtml(run.question)}</div>
+      <div class="meta">${when} ${status}${run.seconds != null ? `<span>${run.seconds}s</span>` : ""}${run.notes ? `<span class="chip tag">${run.notes} note${run.notes > 1 ? "s" : ""}</span>` : ""}</div></div>`;
+  }).join("") || '<div class="empty">no runs yet</div>';
+  return running;
+}
+$("#runList").addEventListener("click", (event) => { const run = event.target.closest(".run"); if (run) openRun(run.dataset.name); });
+
+async function openRun(name, fromAsk = false) {
+  if (name !== currentRun) { openNodes.clear(); chosenTab = null; }
+  currentRun = name;
+  clearTimeout(pollTimer);
+  history.replaceState(null, "", `#${name}`);
+  const response = await fetch(`/api/runs/${name}`);
+  const data = await response.json();
+  if (currentRun !== name) return;
+  const run = groupEvents(data.events);
+  $("#nothing").classList.add("hidden");
+  $("#notesView").classList.add("hidden");
+  $("#runView").classList.remove("hidden");
+  renderNotes(data.notes || [], run.nodes.map((node, index) => `${index + 1} ${node.name}`));
+  $("#runQuestion").textContent = run.start ? run.start.question : (data.log.split("\n")[0] || "").replace(/^QUESTION: /, "");
+  const lastTime = data.events.length ? data.events[data.events.length - 1].time : 0;
+  renderMeta(run, data.running, lastTime);
+  $("#rawLog").textContent = data.log;
+  if (!data.events.length) {                              // an old run with only a text log
+    $("#tab-answer").innerHTML = '<div class="empty">This run was saved before the viewer existed: see Raw log.</div>';
+    $("#tab-steps").innerHTML = "";
+    showTab("raw");
+  } else {
+    const scrollTop = $("main").scrollTop;
+    $("#tab-answer").innerHTML = renderAnswer(run, data.running);
+    applyRoleFilter();
+    $("#tab-steps").innerHTML = renderSteps(run, data.running);
+    $("main").scrollTop = scrollTop;
+    showTab(chosenTab || (data.running ? "steps" : "answer"));
+  }
+  document.querySelectorAll(".run").forEach((element) => element.classList.toggle("active", element.dataset.name === name));
+  if (data.running) pollTimer = setTimeout(() => openRun(name), 1500);
+  else if (fromAsk || $("#askButton").disabled) loadRuns();
+}
+
+// ------------------------------------------------------------------ notes
+let noteTags = [];
+let noteFilter = "";
+
+const noteMeta = (note) => `${note.author ? `<span class="chip decide">${escapeHtml(note.author)}</span>` : ""}${note.tag ? `<span class="chip tag">${escapeHtml(note.tag)}</span>` : ""}` +
+  `${note.node ? `<span class="chip ${nodeKind(note.node.split(" ").pop())}">${escapeHtml(note.node)}</span>` : ""}<span>${escapeHtml(note.time)}</span>`;
+
+function noteHtml(note, runName) {
+  return `<div class="note"><div><div class="noteMeta">${noteMeta(note)}</div><div class="noteText">${escapeHtml(note.text)}</div></div>
+    <div class="noteActions"><button data-edit="${note.id}" data-run="${runName}">edit</button><button data-delete="${note.id}" data-run="${runName}">delete</button></div></div>`;
+}
+
+function renderNotes(notes, nodeNames) {
+  $("#noteList").innerHTML = notes.map((note) => noteHtml(note, currentRun)).join("") || '<div class="message" style="color:var(--muted);font-size:13px">No notes yet.</div>';
+  const chosenNode = $("#noteNode").value;
+  $("#noteNode").innerHTML = '<option value="">whole run</option>' + nodeNames.map((name) => `<option ${name === chosenNode ? "selected" : ""}>${escapeHtml(name)}</option>`).join("");
+}
+
+async function loadNoteTags() {
+  const data = await (await fetch("/api/notes")).json();
+  noteTags = data.tags;
+  $("#noteTag").innerHTML = '<option value="">no tag</option>' + noteTags.map((tag) => `<option>${escapeHtml(tag)}</option>`).join("");
+  return data;
+}
+
+async function saveNote() {
+  const text = $("#noteText").value.trim();
+  if (!text || !currentRun) return;
+  const response = await fetch(`/api/runs/${currentRun}/notes`, {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text, tag: $("#noteTag").value, node: $("#noteNode").value})});
+  if (!response.ok) { alert((await response.json()).error); return; }
+  $("#noteText").value = "";
+  openRun(currentRun); loadRuns();
+}
+$("#saveNote").addEventListener("click", saveNote);
+$("#noteText").addEventListener("keydown", (event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) saveNote(); });
+
+document.addEventListener("click", async (event) => {
+  const nodeButton = event.target.closest("[data-note-node]");
+  if (nodeButton) {                         // "+ note" on a step: note about that step
+    event.preventDefault(); event.stopPropagation();
+    $("#noteNode").value = nodeButton.dataset.noteNode;
+    $("#notesPanel").scrollIntoView({behavior: "smooth", block: "start"});
+    $("#noteText").focus();
+    return;
+  }
+  const editButton = event.target.closest("[data-edit]");
+  const deleteButton = event.target.closest("[data-delete]");
+  const button = editButton || deleteButton;
+  if (!button) return;
+  const url = `/api/runs/${button.dataset.run}/notes/${editButton ? editButton.dataset.edit : deleteButton.dataset.delete}`;
+  if (deleteButton) {
+    if (!confirm("Delete this note?")) return;
+    await fetch(url, {method: "DELETE"});
+  } else {
+    const oldText = button.closest(".note").querySelector(".noteText").textContent;
+    const newText = prompt("Edit note", oldText);
+    if (newText === null || !newText.trim()) return;
+    await fetch(url, {method: "PATCH", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text: newText.trim()})});
+  }
+  if ($("#notesView").classList.contains("hidden")) openRun(currentRun); else showAllNotes();
+  loadRuns();
+}, true);
+
+async function showAllNotes() {
+  clearTimeout(pollTimer);
+  currentRun = null;
+  history.replaceState(null, "", "#notes");
+  const data = await loadNoteTags();
+  $("#nothing").classList.add("hidden");
+  $("#runView").classList.add("hidden");
+  $("#notesView").classList.remove("hidden");
+  document.querySelectorAll(".run").forEach((element) => element.classList.remove("active"));
+  const counts = {};
+  data.runs.forEach((run) => run.note_list.forEach((note) => { counts[note.tag || "no tag"] = (counts[note.tag || "no tag"] || 0) + 1; }));
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  $("#noteFilters").innerHTML = [`<button data-filter="" class="${noteFilter ? "" : "active"}">all ${total}</button>`,
+    ...Object.entries(counts).map(([tag, count]) => `<button data-filter="${escapeHtml(tag)}" class="${noteFilter === tag ? "active" : ""}">${escapeHtml(tag)} ${count}</button>`),
+    '<button class="copy" id="copyNotes">Copy as markdown</button>'].join("");
+  const matches = (note) => !noteFilter || (note.tag || "no tag") === noteFilter;
+  const shown = data.runs.map((run) => ({...run, note_list: run.note_list.filter(matches)})).filter((run) => run.note_list.length);
+  $("#notesByRun").innerHTML = shown.map((run) => `<div class="noteRun card">
+      <div class="runTitle" data-open="${run.name}">${escapeHtml(run.question)}</div>
+      <div class="noteMeta" style="display:flex;gap:6px;margin-bottom:6px;font-size:12px;color:var(--muted)">${run.name}${run.route ? ` <span class="chip route">${run.route}</span>` : ""}
+        ${run.answer_model ? `<span class="chip llm">${escapeHtml(run.answer_model)}</span>` : ""}</div>
+      ${run.note_list.map((note) => noteHtml(note, run.name)).join("")}</div>`).join("") || '<div class="empty">No notes yet. Open a run and write one.</div>';
+  $("#copyNotes").onclick = () => {
+    const markdownText = shown.map((run) => `## ${run.question}\nrun ${run.name}${run.route ? ` · ${run.route}` : ""}${run.answer_model ? ` · ${run.answer_model} + ${run.decision_model}` : ""}\n` +
+      run.note_list.map((note) => `- ${note.tag ? `[${note.tag}] ` : ""}${note.node ? `(${note.node}) ` : ""}${note.text.replace(/\n/g, "\n  ")}`).join("\n")).join("\n\n");
+    navigator.clipboard.writeText(markdownText).then(() => { $("#copyNotes").textContent = "Copied"; setTimeout(() => { $("#copyNotes").textContent = "Copy as markdown"; }, 1500); });
+  };
+}
+$("#allNotesButton").addEventListener("click", showAllNotes);
+document.addEventListener("click", (event) => {
+  const filter = event.target.closest("[data-filter]");
+  if (filter) { noteFilter = filter.dataset.filter; showAllNotes(); }
+  const open = event.target.closest("[data-open]");
+  if (open) openRun(open.dataset.open);
+});
+
+// ------------------------------------------------------------------ ask
+async function loadModels() {
+  const response = await fetch("/api/models");
+  const data = await response.json();
+  if (data.error) { $("#askMessage").textContent = data.error; return; }
+  for (const [role, select] of [["answer", $("#answerModel")], ["decision", $("#decisionModel")]]) {
+    const cloud = (data.cloud && data.cloud[role]) || [];
+    const local = data.fits[role].includes(data.defaults[role]) || cloud.includes(data.defaults[role]) ? data.fits[role] : [data.defaults[role], ...data.fits[role]];
+    const option = (name, label) => `<option value="${escapeHtml(name)}" ${name === data.defaults[role] ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    const price = (name) => data.prices[name] ? `  ·  $${data.prices[name][0]} in / $${data.prices[name][1]} out per 1M` : "";
+    select.innerHTML = `<optgroup label="local (this Mac, free)">${local.map((name) => option(name, name)).join("")}</optgroup>` +
+      (cloud.length ? `<optgroup label="cloud (ollama.com, paid per token)">${cloud.map((name) => option(name, name + price(name))).join("")}</optgroup>` : "");
+    select.dataset.cloud = JSON.stringify(cloud);
+    select.addEventListener("change", cloudWarning);
+  }
+  cloudWarning();
+}
+
+// a cloud model sends the question and book text to ollama.com: say so next to the Ask button
+function cloudWarning() {
+  const isCloud = (select) => JSON.parse(select.dataset.cloud || "[]").includes(select.value);
+  const chosen = [$("#answerModel"), $("#decisionModel")].filter(isCloud).map((select) => select.value);
+  $("#cloudNote").textContent = chosen.length ? `cloud: ${chosen.join(" + ")} run on ollama.com (needs ollama signin; billed per token)` : "";
+}
+
+$("#askButton").addEventListener("click", async () => {
+  const question = $("#questionInput").value.trim();
+  if (!question) return;
+  $("#askMessage").textContent = "";
+  $("#askButton").disabled = true;
+  const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({question, answer_model: $("#answerModel").value, decision_model: $("#decisionModel").value, use_judge: $("#useJudge").checked})});
+  const data = await response.json();
+  if (!response.ok) { $("#askMessage").textContent = data.error; $("#askButton").disabled = false; return; }
+  await loadRuns();
+  openRun(data.name, true);
+});
+$("#questionInput").addEventListener("keydown", (event) => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) $("#askButton").click(); });
+$("#newButton").addEventListener("click", () => { $("#questionInput").focus(); $("main").scrollTop = 0; });
+
+// ------------------------------------------------------------------ start
+loadModels();
+loadNoteTags();
+loadRuns().then((running) => {
+  const fromHash = location.hash.slice(1);
+  if (fromHash === "notes") showAllNotes();
+  else if (fromHash) openRun(fromHash);
+  else if (running) openRun(running);
+});
+setInterval(loadRuns, 5000);
+</script>
+</body>
+</html>

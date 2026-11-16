@@ -1,0 +1,53 @@
+# Dance RAG API on a VPS, separate from anything else running there: its own compose project, its own network,
+# bound to 127.0.0.1 only; Caddy on the host proxies rag.<your domain> to it (deploy/Caddyfile.example).
+#   cd ~/dance-style-RAG && docker compose -f deploy/docker-compose.yml up -d --build
+name: dance-rag
+
+services:
+
+  # Ollama only relays to Ollama Cloud (no local model runs here: the VPS has no GPU).
+  # One-time sign-in:  docker compose -f deploy/docker-compose.yml exec ollama ollama signin
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}     # pin: OLLAMA_IMAGE=ollama/ollama:<version> in .env (`ollama -v`)
+    container_name: rag-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama                     # sign-in key + cloud model stubs survive rebuilds
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  rag-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    platform: linux/amd64
+    container_name: rag-api
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "127.0.0.1:8090:8080"                         # localhost only; the internet reaches it through Caddy
+    depends_on:
+      - ollama
+    env_file:                                         # optional: without it the API uses its defaults
+      - path: ./.env                                  # ($1/day, 5 questions/hour, origins levibaruch.dev)
+        required: false
+    environment:
+      OLLAMA_URL: http://ollama:11434
+    volumes:
+      # index_v4 + book_index.pkl (copied from the Mac, never in git); traces and the daily spend file are written here
+      - ../cache/agentic:/app/cache/agentic
+    mem_limit: ${RAG_MEM_LIMIT:-2g}                   # can never take memory from the other services
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s                               # loading the index + embedding model
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+volumes:
+  ollama_data:
