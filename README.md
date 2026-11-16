@@ -1,10 +1,13 @@
 # Dance Style RAG
 
 ![ci](https://github.com/levibaruch/Ballroom-RAG/actions/workflows/ci.yml/badge.svg)
+[![Try it](https://img.shields.io/badge/try_it-live_demo-2ea44f)](https://levibaruch.dev/projects/dance-style-rag/)
 
 To develop my RAG skills and possibly add more functionality, this system answers ballroom related technique questions based on WDSF sources. It does custom ingest, routing and agentic RAG using GPT-oss 120:b and decision models.
 
-<!-- TODO: link to the live demo page and a short GIF of the "How the system answered" panel -->
+**[Try it live on levibaruch.dev →](https://levibaruch.dev/projects/dance-style-rag/)**
+
+<!-- TODO: short GIF of the "How the system answered" panel (docs/demo.gif) -->
 
 
 ## How a question is answered
