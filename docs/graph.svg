@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1030" width="1400" height="1030" role="img" aria-label="Full graph from question to answer">
+<style>
+  svg { --surface:#ffffff; --fg:#1b2230; --muted:#5b6577; --line:#9aa4b5;
+    --code:#0f766e; --code-bg:#e6f4f2; --jev:#b45309; --jev-bg:#fdf1e3;
+    --llm:#4338ca; --llm-bg:#ecebfb; --end:#475569; --end-bg:#eef1f5; }
+  @media (prefers-color-scheme: dark) { svg { --surface:#181e27; --fg:#e4e8ef; --muted:#98a2b3; --line:#5d6878;
+    --code:#5eead4; --code-bg:#12302d; --jev:#fbbf24; --jev-bg:#3a2a10;
+    --llm:#a5b4fc; --llm-bg:#252650; --end:#cbd5e1; --end-bg:#232a35; } }
+  .bg { fill: var(--surface); }
+  text { fill: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; }
+  .name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+  .sub { fill: var(--muted); font-size: 11.5px; }
+  .lbl { fill: var(--muted); font-size: 11px; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+  .code { fill: var(--code-bg); stroke: var(--code); stroke-width: 1.5; }
+  .jev { fill: var(--jev-bg); stroke: var(--jev); stroke-width: 1.5; }
+  .llm { fill: var(--llm-bg); stroke: var(--llm); stroke-width: 1.5; }
+  .end { fill: var(--end-bg); stroke: var(--end); stroke-width: 1.5; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.6; }
+  .dash { stroke-dasharray: 6 5; }
+  .arrowhead { fill: var(--line); }
+  .key { font-size: 12px; fill: var(--muted); }
+</style>
+<rect class="bg" x="0" y="0" width="1400" height="1030"/>
+
+        <defs><marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+
+        <!-- spine: question -> entities -> decision model -> override rules -> bus -->
+        <path class="edge" d="M525,46 V70" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M525,126 V160" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M675,188 H725" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M825,236 V240 M95,240 H1115"/>
+        <path class="edge" d="M95,240 V280 M265,240 V280 M435,240 V280 M605,240 V280 M775,240 V280 M945,240 V280 M1115,240 V280" />
+        <path class="edge" d="M1115,272 V280" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="1121" y="262">GENERAL</text>
+        <!-- mixed question: split, general part first, books part back to ExtractEntities -->
+        <path class="edge dash" d="M375,188 H330" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="352" y="180" text-anchor="middle">mixed</text>
+        <path class="edge dash" d="M190,140 V98 H375" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="200" y="92">books part, routed again</text>
+        <path class="edge" d="M95,272 V280" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M265,272 V280" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M435,272 V280" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M605,272 V280" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M775,272 V280" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M945,272 V280" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="101" y="262">FIGURE</text>
+        <text class="lbl" x="271" y="262">FIGURE_COMPARE</text>
+        <text class="lbl" x="441" y="262">TECHNIQUE</text>
+        <text class="lbl" x="611" y="262">UNSURE (p &lt; 0.5)</text>
+        <text class="lbl" x="781" y="262">TERM</text>
+        <text class="lbl" x="951" y="262">OUT_OF_SCOPE</text>
+
+        <!-- column internals -->
+        <path class="edge" d="M95,330 V350" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M95,400 V420" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M265,330 V350" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M265,400 V420" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M265,470 V490" marker-end="url(#arrow2)"/>
+        <path class="edge dash" d="M340,445 H360" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M775,330 V350" marker-end="url(#arrow2)"/>
+
+        <!-- merge -->
+        <path class="edge" d="M95,540 V565 M265,540 V565 M435,540 V565 M605,540 V565 M775,400 V565 M95,565 H775 M525,565 V590" marker-end="url(#arrow2)"/>
+
+        <!-- answer -> cites -> judge, loops -->
+        <path class="edge" d="M525,646 V680" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M525,736 V770" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M525,826 V940" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="533" y="880">all supported, question answered</text>
+        <path class="edge dash" d="M375,708 H350 V618 H375" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="344" y="660" text-anchor="end">bad ids</text>
+        <text class="lbl" x="344" y="676" text-anchor="end">max 2</text>
+        <path class="edge dash" d="M675,798 H725" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="700" y="790" text-anchor="middle">fails</text>
+        <path class="edge dash" d="M807,770 V618 H675" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="815" y="700">max 2 repair rounds</text>
+
+        <!-- side exits to End -->
+        <path class="edge dash" d="M20,375 H10 V958 H435" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="18" y="950">figure not in this dance → "see Cha Cha p.." (named in its text → agent)</text>
+        <path class="edge" d="M945,330 V958 H615" marker-end="url(#arrow2)"/>
+        <path class="edge" d="M1115,420 V432 H1060 V958 H945"/>
+        <!-- ABOUT: own branch from the bus along the right edge -->
+        <path class="edge" d="M1115,240 H1203 V485 H1192" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="1200" y="233" text-anchor="end">ABOUT</text>
+        <path class="edge" d="M1136,530 V958 H1060"/>
+        <!-- CHARACTER: bus extended to its own column; the books part joins the merge into Answer -->
+        <path class="edge" d="M1203,240 H1307 V280" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="1313" y="262">CHARACTER</text>
+        <path class="edge" d="M1307,500 V565 H775"/>
+        <text class="lbl" x="1300" y="558" text-anchor="end">books part → Answer</text>
+        <!-- self-harm: code check before everything -->
+        <path class="edge dash" d="M675,98 H805" marker-end="url(#arrow2)"/>
+        <text class="lbl" x="740" y="90" text-anchor="middle">self-harm</text>
+
+        <!-- spine nodes -->
+        <rect class="end" x="435" y="10" width="180" height="36" rx="18"/>
+        <text class="name" x="525" y="33" text-anchor="middle">question</text>
+        <rect class="code" x="375" y="70" width="300" height="56" rx="7"/>
+        <text class="name" x="389" y="93">ExtractEntities</text>
+        <text class="sub" x="389" y="112">fuzzy match: dances, figures, role, step</text>
+        <rect class="jev" x="375" y="160" width="300" height="56" rx="7"/>
+        <text class="name" x="389" y="183">ClassifyKind</text>
+        <text class="sub" x="389" y="202">decision model: 8 kinds + aspect + mixed?</text>
+        <rect class="llm" x="70" y="140" width="260" height="76" rx="7"/>
+        <text class="name" x="84" y="163">SplitQuestion</text>
+        <text class="sub" x="84" y="182">LLM: BOOKS part + GENERAL part</text>
+        <text class="sub" x="84" y="200">general part → GeneralAdvice first</text>
+        <rect class="code" x="725" y="140" width="230" height="96" rx="7"/>
+        <text class="name" x="739" y="161">Override rules</text>
+        <text class="sub" x="739" y="180">no figure → not FIGURE</text>
+        <text class="sub" x="739" y="198">2 figures/dances, man+lady → COMPARE</text>
+        <text class="sub" x="739" y="216">p &lt; 0.5 → UNSURE · aspect → all</text>
+
+        <!-- safety reply -->
+        <rect class="end" x="805" y="70" width="190" height="56" rx="7"/>
+        <text class="name" x="817" y="93">SafetyReply</text>
+        <text class="sub" x="817" y="112">crisis lines, no LLM → end</text>
+
+        <!-- CHARACTER column -->
+        <rect class="llm" x="1225" y="280" width="165" height="220" rx="7"/>
+        <text class="name" x="1237" y="303">CharacterPath</text>
+        <text class="sub" x="1237" y="322">code reads, per dance:</text>
+        <text class="sub" x="1237" y="340">music, own principles,</text>
+        <text class="sub" x="1237" y="358">interpretation (once)</text>
+        <text class="sub" x="1237" y="384">agent ≤ 6 calls: its</text>
+        <text class="sub" x="1237" y="402">typical actions</text>
+        <text class="sub" x="1237" y="428">in parallel: the feel,</text>
+        <text class="sub" x="1237" y="446">own knowledge, under</text>
+        <text class="sub" x="1237" y="464">its own heading</text>
+        <text class="sub" x="1237" y="490">judge: no mood loop</text>
+
+        <!-- FIGURE column -->
+        <rect class="code" x="20" y="280" width="150" height="50" rx="7"/>
+        <text class="name" x="32" y="301">ResolveFigure</text><text class="sub" x="32" y="318">in this dance?</text>
+        <rect class="code" x="20" y="350" width="150" height="50" rx="7"/>
+        <text class="name" x="32" y="371">ReadCharts</text><text class="sub" x="32" y="388">whole: sides + NOTES</text>
+        <rect class="llm" x="20" y="420" width="150" height="120" rx="7"/>
+        <text class="name" x="32" y="441">Background</text>
+        <text class="sub" x="32" y="460">agent, max 6 calls:</text>
+        <text class="sub" x="32" y="478">prose that explains</text>
+        <text class="sub" x="32" y="496">the chart's terms</text>
+        <text class="sub" x="32" y="514">(positions, actions,</text>
+        <text class="sub" x="32" y="532">lead)</text>
+
+        <!-- FIGURE_COMPARE column -->
+        <rect class="code" x="190" y="280" width="150" height="50" rx="7"/>
+        <text class="name" x="202" y="301">BuildSides</text><text class="sub" x="202" y="318">(dance, figure, role)</text>
+        <rect class="jev" x="190" y="350" width="150" height="50" rx="7"/>
+        <text class="name" x="202" y="371">ClassifyAspect</text><text class="sub" x="202" y="388">one for all sides</text>
+        <rect class="code" x="190" y="420" width="150" height="50" rx="7"/>
+        <text class="name" x="202" y="441">Resolve+Select</text><text class="sub" x="202" y="458">side missing → agent</text>
+        <rect class="code" x="190" y="490" width="150" height="50" rx="7"/>
+        <text class="name" x="202" y="511">AlignSides</text><text class="sub" x="202" y="528">same columns, per step</text>
+
+        <!-- TECHNIQUE column -->
+        <rect class="llm" x="360" y="280" width="150" height="260" rx="7"/>
+        <text class="name" x="372" y="303">Prose agent</text>
+        <text class="sub" x="372" y="322">≤ 15 tool calls</text>
+        <text class="sub" x="372" y="350">search (hybrid)</text>
+        <text class="sub" x="372" y="368">outline (book ToC)</text>
+        <text class="sub" x="372" y="386">read_section (unit)</text>
+        <text class="sub" x="372" y="404">list_figures</text>
+        <text class="sub" x="372" y="422">dances_with_figure</text>
+        <text class="sub" x="372" y="440">select_charts</text>
+        <text class="sub" x="372" y="458">read_charts</text>
+        <text class="sub" x="372" y="490">may return</text>
+        <text class="sub" x="372" y="508">"not in the books"</text>
+
+        <!-- UNSURE column -->
+        <rect class="llm" x="530" y="280" width="150" height="260" rx="7" style="stroke-dasharray:5 4"/>
+        <text class="name" x="542" y="303">UNSURE agent</text>
+        <text class="sub" x="542" y="322">same tools as Prose</text>
+        <text class="sub" x="542" y="350">own starting prompt:</text>
+        <text class="sub" x="542" y="368">· kind is unclear</text>
+        <text class="sub" x="542" y="386">· the kind probabilities</text>
+        <text class="sub" x="542" y="404">· entities found</text>
+        <text class="sub" x="542" y="422">· first decide what</text>
+        <text class="sub" x="542" y="440">  the question asks</text>
+        <text class="sub" x="542" y="490">read nothing →</text>
+        <text class="sub" x="542" y="508">GeneralAdvice</text>
+
+        <!-- TERM column -->
+        <rect class="code" x="700" y="280" width="150" height="50" rx="7"/>
+        <text class="name" x="712" y="301">index_lookup</text><text class="sub" x="712" y="318">no hit → agent</text>
+        <rect class="code" x="700" y="350" width="150" height="50" rx="7"/>
+        <text class="name" x="712" y="371">read_section</text><text class="sub" x="712" y="388">blocks with ids</text>
+
+        <!-- OUT_OF_SCOPE column -->
+        <rect class="end" x="870" y="280" width="150" height="50" rx="7"/>
+        <text class="name" x="882" y="301">Refuse</text><text class="sub" x="882" y="318">friendly text, no LLM</text>
+
+        <!-- GENERAL column -->
+        <rect class="llm" x="1040" y="280" width="150" height="140" rx="7"/>
+        <text class="name" x="1052" y="303">GeneralAdvice</text>
+        <text class="sub" x="1052" y="322">own knowledge</text>
+        <text class="sub" x="1052" y="340">no ids, not judged</text>
+        <text class="sub" x="1052" y="358">shown last as</text>
+        <text class="sub" x="1052" y="376">"TIPS (not from</text>
+        <text class="sub" x="1052" y="394">the books)"</text>
+        <rect class="llm" x="1080" y="445" width="112" height="85" rx="7"/>
+        <text class="name" x="1090" y="466">AboutPath</text>
+        <text class="sub" x="1090" y="484">facts from the</text>
+        <text class="sub" x="1090" y="500">index; LLM writes</text>
+        <text class="sub" x="1090" y="516">them, not judged</text>
+
+        <!-- answer, checks, repair -->
+        <rect class="llm" x="375" y="590" width="300" height="56" rx="7"/>
+        <text class="name" x="389" y="613">Answer</text>
+        <text class="sub" x="389" y="632">LLM, cites ids · What it is / How / Watch</text>
+        <rect class="code" x="375" y="680" width="300" height="56" rx="7"/>
+        <text class="name" x="389" y="703">CheckCites</text>
+        <text class="sub" x="389" y="722">ids valid, no ranges, every fact cited</text>
+        <rect class="jev" x="375" y="770" width="300" height="56" rx="7"/>
+        <text class="name" x="389" y="793">JudgeClaims</text>
+        <text class="sub" x="389" y="812">3 verdicts per claim · batches in parallel</text>
+        <rect class="llm" x="725" y="770" width="165" height="56" rx="7"/>
+        <text class="name" x="739" y="793">FillGap</text>
+        <text class="sub" x="739" y="812">search for failed claims</text>
+        <rect class="end" x="435" y="940" width="180" height="36" rx="18"/>
+        <text class="name" x="525" y="963" text-anchor="middle">end (+ TIPS / FEEL)</text>
+      
+<rect class="code" x="20" y="1003" width="14" height="14" rx="3"/><text class="key" x="40" y="1014">code (deterministic)</text><rect class="jev" x="200.0" y="1003" width="14" height="14" rx="3"/><text class="key" x="220.0" y="1014">decision model (choice or yes/no + probability)</text><rect class="llm" x="558.2" y="1003" width="14" height="14" rx="3"/><text class="key" x="578.2" y="1014">LLM (gpt-oss)</text><rect class="end" x="692.0" y="1003" width="14" height="14" rx="3"/><text class="key" x="712.0" y="1014">fixed text / end</text>
+</svg>

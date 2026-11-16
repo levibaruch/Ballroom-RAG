@@ -2,64 +2,24 @@
 
 ![ci](https://github.com/levibaruch/Ballroom-RAG/actions/workflows/ci.yml/badge.svg)
 
-Ask a question about ballroom or Latin dance technique, and get an answer from the WDSF technique books (10 dances,
-about 1,750 pages). **Every fact in the answer is cited to the book, and every cited claim is checked against its
-source before the answer is shown.**
+To develop my RAG skills and possibly add more functionality, this system answers ballroom related technique questions based on WDSF sources. It does custom ingest, routing and agentic RAG using GPT-oss 120:b and decision models.
 
 <!-- TODO: link to the live demo page and a short GIF of the "How the system answered" panel -->
 
-It is a **constrained agentic RAG**:
-- **Code** owns the control flow, a plain-Python state machine.
-- **A small decision model** makes the multiple-choice and yes/no calls, with calibrated probabilities.
-- **The LLM** only searches, with bounded tool budgets, and writes the answer from the evidence it read.
-
-## What makes it interesting
-
-- **Routing with probabilities, not prompts.** A decision model classifies each question (figure, comparison,
-  technique, term, character, general advice, out of scope), and code rules correct it. A question that falls below
-  the threshold takes an UNSURE route instead of a wrong one.
-- **Retrieval chosen per question kind.** Figure questions read whole step charts by code. Term questions use the
-  books' own index. Open questions get a bounded search agent that may only *collect* evidence, never answer.
-- **Verification after writing.** Each claim in the answer is judged against the exact blocks it cites (supported /
-  contradicted / not in evidence). Failing claims are repaired or searched for again, never shown as fact.
-- **A parser chosen per page type.** The books defeat every single PDF parser. A comparison of six parsers on 15
-  hard pages picked a combination: bibr for tables and charts, Docling for prose structure, and code that reads the
-  colour-coded matrices from their pixels. It scored 1.73 vs 1.44 for the best single parser.
-- **Measured decisions.** Prompts, search output and index designs were chosen by A/B tests with blind review. One
-  example: a 55% shorter prompt set lost 88 vs 111.
-- **A public demo that is safe to run.** It streams a whitelisted trace of every step, quotes at most ~200
-  characters of book text, and has a daily budget cap, rate limiting and CORS for the demo site only.
 
 ## How a question is answered
 
-```mermaid
-flowchart LR
-    Q[question] --> E[entities<br/><i>code</i>] --> K[kind<br/><i>decision model</i>]
-    K --> R{route}
-    R --> FIG[figure charts<br/><i>code</i>]
-    R --> AG[search agent<br/><i>bounded</i>]
-    R --> T[book index<br/><i>code</i>]
-    R --> G[general advice<br/><i>labelled</i>]
-    FIG --> A[answer with<br/>evidence ids]
-    AG --> A
-    T --> A
-    A --> C[citation check<br/><i>code</i>] --> J[claim judge<br/><i>decision model</i>]
-    J -- unsupported --> FX[repair / search again] --> J
-    J --> F[footnotes with the<br/>book's words and page]
-```
+[![How a question is answered: question → entities → kind → one path per kind → answer → citation check → claim judge → footnotes](docs/graph.svg)](docs/graph.svg)
 
 Details: [docs/architecture.md](docs/architecture.md).
 
-## Results
+## How the books are read
+ 
+Since the books are a bit of a mess and hard to read, [bibr](https://github.com/scienceverse/bibr) (developed by a wonderful colleague, [Jakub Werner](https://github.com/thesanogoeffect), in the metascience team at the TU/e) was used as an experiment to properly extract tables (which worked really well!). A combination of parsers was used to use each other's strengths.
 
-| | |
-|---|---|
-| Parser combination vs best single parser (15 hard pages, 0–2) | **1.73** vs 1.44 |
-| Final index vs original (29 gold questions) | gold page cited **27/27** vs 23/27; unsupported claims **0** vs 1 |
-| Routing on 100 draft questions | 84 right, 12 UNSURE, 4 wrong |
-| Cost per question (cloud models) | about 1–2 cents |
+[![Ingest: each page is sorted by type (chart, precedes/follows matrix, prose) and read by the extractor that scored best for it, then structured into sections and search entries](docs/ingest.svg)](docs/ingest.svg)
 
-More in [docs/evaluation.md](docs/evaluation.md) and [docs/decisions.md](docs/decisions.md).
+Why this combination of parsers: [docs/parser-comparison.md](docs/parser-comparison.md).
 
 ## Stack
 
@@ -78,8 +38,8 @@ make lint
 make test         # tests/unit always; tests/index only when the index is built
 ```
 
-With your own copies of the books in `theory/latin/<Dance>.pdf` and `theory/standard/<Dance>.pdf`, you need an
-Apple Silicon Mac (bibr's table OCR runs on MLX), [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com)
+With your own copies of the books in `theory/latin/<Dance>.pdf` and `theory/standard/<Dance>.pdf`, you can process PDF's. The current code is writen for an Apple Silicon Mac.
+ (bibr's table OCR runs on MLX), [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com)
 and `brew install libmagic`:
 
 ```bash
@@ -111,5 +71,3 @@ deploy/          Dockerfile, docker-compose, Caddy example
 examples/widget/ the demo page widget (vanilla JS/CSS) with a local preview
 docs/            architecture, decisions, evaluation, parser comparison, deployment, limitations
 ```
-
-No license: the code is shown for reading. All rights reserved.

@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 930" width="900" height="930" role="img" aria-label="Pre-processing: each page type and the extractor used for it">
+<style>
+  svg { --surface:#ffffff; --fg:#1b2230; --muted:#5b6577; --line:#9aa4b5;
+    --code:#0f766e; --code-bg:#e6f4f2; --jev:#b45309; --jev-bg:#fdf1e3;
+    --llm:#4338ca; --llm-bg:#ecebfb; --end:#475569; --end-bg:#eef1f5; }
+  @media (prefers-color-scheme: dark) { svg { --surface:#181e27; --fg:#e4e8ef; --muted:#98a2b3; --line:#5d6878;
+    --code:#5eead4; --code-bg:#12302d; --jev:#fbbf24; --jev-bg:#3a2a10;
+    --llm:#a5b4fc; --llm-bg:#252650; --end:#cbd5e1; --end-bg:#232a35; } }
+  .bg { fill: var(--surface); }
+  text { fill: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12px; }
+  .name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+  .sub { fill: var(--muted); font-size: 11.5px; }
+  .lbl { fill: var(--muted); font-size: 11px; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+  .code { fill: var(--code-bg); stroke: var(--code); stroke-width: 1.5; }
+  .jev { fill: var(--jev-bg); stroke: var(--jev); stroke-width: 1.5; }
+  .llm { fill: var(--llm-bg); stroke: var(--llm); stroke-width: 1.5; }
+  .end { fill: var(--end-bg); stroke: var(--end); stroke-width: 1.5; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.6; }
+  .dash { stroke-dasharray: 6 5; }
+  .arrowhead { fill: var(--line); }
+  .ghost { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .head { font-size: 13px; font-weight: 700; fill: var(--muted); letter-spacing: 0.04em; }
+  .key { font-size: 12px; fill: var(--muted); }
+</style>
+<rect class="bg" x="0" y="0" width="900" height="930"/>
+
+        <defs><marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+        <text class="head" x="20" y="172">CHARTS (step tables)</text>
+        <text class="head" x="315" y="172">PRECEDES / FOLLOWS</text>
+        <text class="head" x="610" y="172">TEXT</text>
+
+        <path class="edge" d="M450,46 V66" marker-end="url(#arrow3)"/>
+        <path class="edge" d="M450,122 V145 H155 V180 M450,145 V180 M450,145 H745 V180" marker-end="url(#arrow3)"/>
+
+        <rect class="end" x="340" y="10" width="220" height="36" rx="18"/>
+        <text class="name" x="450" y="33" text-anchor="middle">10 PDFs (1,782 pages)</text>
+        <rect class="code" x="220" y="66" width="460" height="56" rx="7"/>
+        <text class="name" x="234" y="89">Step 1 · sort each page (code, PyMuPDF)</text>
+        <text class="sub" x="234" y="108">chart title? → chart · matrix title? → matrix · else → prose</text>
+
+        <rect class="end" x="20" y="180" width="270" height="66" rx="7"/>
+        <text class="name" x="34" y="202">Chart page</text>
+        <text class="sub" x="34" y="221">PyMuPDF finds a chart title</text>
+        <text class="sub" x="34" y="238">(figure · role · side)</text>
+        <path class="edge" d="M155,246 V266" marker-end="url(#arrow3)"/>
+        <rect class="llm" x="20" y="266" width="270" height="64" rx="7"/>
+        <text class="name" x="34" y="288">bibr</text>
+        <text class="sub" x="34" y="307">table read with PaddleOCR-VL,</text>
+        <text class="sub" x="34" y="324">+ fix for the 2-row Timing header</text>
+        <path class="edge" d="M155,330 V350" marker-end="url(#arrow3)"/>
+        <rect class="code" x="20" y="350" width="270" height="64" rx="7"/>
+        <text class="name" x="34" y="372">PyMuPDF (fallback)</text>
+        <text class="sub" x="34" y="391">its own table when bibr's table</text>
+        <text class="sub" x="34" y="408">count or checks fail (29 sides)</text>
+        <path class="edge" d="M155,414 V434" marker-end="url(#arrow3)"/>
+        <rect class="llm" x="20" y="434" width="270" height="64" rx="7"/>
+        <text class="name" x="34" y="456">bibr</text>
+        <text class="sub" x="34" y="475">the NOTES printed under</text>
+        <text class="sub" x="34" y="492">the chart (757 notes)</text>
+        <path class="edge" d="M155,498 V585"/>
+        <rect class="end" x="315" y="180" width="270" height="66" rx="7"/>
+        <text class="name" x="329" y="202">Matrix page</text>
+        <text class="sub" x="329" y="221">title PRECEDES AND FOLLOWS:</text>
+        <text class="sub" x="329" y="238">colour grid, a scanned image</text>
+        <path class="edge" d="M450,246 V266" marker-end="url(#arrow3)"/>
+        <rect class="code" x="315" y="266" width="270" height="64" rx="7"/>
+        <text class="name" x="329" y="288">Grid (code)</text>
+        <text class="sub" x="329" y="307">ruled lines found in the</text>
+        <text class="sub" x="329" y="324">rendered pixels</text>
+        <path class="edge" d="M450,330 V350" marker-end="url(#arrow3)"/>
+        <rect class="code" x="315" y="350" width="270" height="64" rx="7"/>
+        <text class="name" x="329" y="372">PyMuPDF</text>
+        <text class="sub" x="329" y="391">row + column names from the text</text>
+        <text class="sub" x="329" y="408">layer (none: from sibling pages)</text>
+        <path class="edge" d="M450,414 V434" marker-end="url(#arrow3)"/>
+        <rect class="code" x="315" y="434" width="270" height="64" rx="7"/>
+        <text class="name" x="329" y="456">Cell colours (code)</text>
+        <text class="sub" x="329" y="475">clustered per page: with / without</text>
+        <text class="sub" x="329" y="492">variation / not allowed (25 tables)</text>
+        <path class="edge" d="M450,498 V518" marker-end="url(#arrow3)"/>
+        <rect class="ghost" x="315" y="518" width="270" height="64" rx="7"/>
+        <text class="name" x="329" y="540">fallback</text>
+        <text class="sub" x="329" y="559">unreliable grid, names or</text>
+        <text class="sub" x="329" y="576">colours → bibr's text</text>
+        <path class="edge" d="M450,582 V585"/>
+        <rect class="end" x="610" y="180" width="270" height="66" rx="7"/>
+        <text class="name" x="624" y="202">Prose page</text>
+        <text class="sub" x="624" y="221">every other page:</text>
+        <text class="sub" x="624" y="238">principles, music, intro, index</text>
+        <path class="edge" d="M745,246 V266" marker-end="url(#arrow3)"/>
+        <rect class="llm" x="610" y="266" width="270" height="64" rx="7"/>
+        <text class="name" x="624" y="288">Docling</text>
+        <text class="sub" x="624" y="307">layout model: reading order,</text>
+        <text class="sub" x="624" y="324">headings and text (525 pages)</text>
+        <path class="edge" d="M745,330 V350" marker-end="url(#arrow3)"/>
+        <rect class="llm" x="610" y="350" width="270" height="64" rx="7"/>
+        <text class="name" x="624" y="372">bibr (tables)</text>
+        <text class="sub" x="624" y="391">each Docling table replaced by the</text>
+        <text class="sub" x="624" y="408">bibr table sharing most words</text>
+        <path class="edge" d="M745,414 V434" marker-end="url(#arrow3)"/>
+        <rect class="llm" x="610" y="434" width="270" height="64" rx="7"/>
+        <text class="name" x="624" y="456">bibr (fallback)</text>
+        <text class="sub" x="624" y="475">whole page from bibr when Docling</text>
+        <text class="sub" x="624" y="492">kept &lt; 80% of the page's words</text>
+        <path class="edge" d="M745,498 V585"/>
+
+        <path class="edge" d="M155,585 H745 M450,585 V605" marker-end="url(#arrow3)"/>
+        <rect class="code" x="220" y="605" width="460" height="70" rx="7"/>
+        <text class="name" x="234" y="627">Step 3 · structure per book (code)</text>
+        <text class="sub" x="234" y="646">Part 1 / Part 2 / chapter / subheading (book rules)</text>
+        <text class="sub" x="234" y="664">prose packed into heading units ~2,000 chars; stable ids; reading order</text>
+
+        <path class="edge" d="M450,675 V695 H250 V715 M450,695 H650 V715" marker-end="url(#arrow3)"/>
+        <rect class="end" x="100" y="715" width="300" height="90" rx="7"/>
+        <text class="name" x="114" y="737">Sections (read + cited)</text>
+        <text class="sub" x="114" y="756">chart sides, NOTES, chapter units,</text>
+        <text class="sub" x="114" y="774">abbreviation tables, matrices</text>
+        <text class="sub" x="114" y="792">id 'Rumba|chart|Fan|Lady|side 1' -> 6 digits</text>
+        <rect class="end" x="500" y="715" width="300" height="90" rx="7"/>
+        <text class="name" x="514" y="737">Search entries (finding only)</text>
+        <text class="sub" x="514" y="756">path + text windows; 1 per chart side</text>
+        <text class="sub" x="514" y="774">Part 1 once per style; figure cards,</text>
+        <text class="sub" x="514" y="792">book-index terms; BM25 + embeddings</text>
+
+        <path class="edge" d="M250,805 V825 H450 M650,805 V825 H450 M450,825 V845" marker-end="url(#arrow3)"/>
+        <rect class="end" x="300" y="845" width="300" height="40" rx="20"/>
+        <text class="name" x="450" y="870" text-anchor="middle">index -> search / read / graph</text>
+      
+<rect class="code" x="20" y="903" width="14" height="14" rx="3"/><text class="key" x="40" y="914">code / PyMuPDF (deterministic)</text><rect class="llm" x="253.0" y="903" width="14" height="14" rx="3"/><text class="key" x="273.0" y="914">extractor with a local model (bibr, Docling)</text><rect class="end" x="574.2" y="903" width="14" height="14" rx="3"/><text class="key" x="594.2" y="914">input / page type / output</text><rect class="ghost" x="782.0" y="903" width="14" height="14" rx="3"/><text class="key" x="802.0" y="914">fallback</text>
+</svg>
