@@ -30,7 +30,8 @@ from dataclasses import dataclass, field
 from dance_rag_agentic.retrieval import books
 from dance_rag_agentic.agent.prompts import (REQUEST_CHARACTER_NOTE, REQUEST_LANGUAGE, REQUEST_ROLE_WORDS, REQUEST_FIGURE_LIST, FEEDBACK_MISSES_QUESTION, FEEDBACK_MISSING_PARTS, FEEDBACK_NEW_EVIDENCE, FEEDBACK_NO_NEW_EVIDENCE, FEEDBACK_RETYPED_CHART, FILL_MISSING_PART, FILL_NOT_FOUND, REQUEST_ALREADY_READ, REQUEST_ANSWER_NOTES, REQUEST_BACKGROUND, REQUEST_COMPARISON, REQUEST_ENTITIES, REQUEST_FIGURE_CANDIDATES, REQUEST_FILLGAP, REQUEST_GENERAL_BOOKS_PART, REQUEST_GENERAL_NOTHING_IN_BOOKS, REQUEST_NOTES, REQUEST_REPAIR_EVIDENCE, REQUEST_REPAIR_NEW_EVIDENCE, REQUEST_REPAIR_VERDICT, REQUEST_REWRITE, REQUEST_SEARCHES_DONE)  # noqa: E501
 from dance_rag_agentic.agent.agents import (about_writer, answer_writer, character_writer, general_writer, polish_writer,
-                                            prompt, repair_writer, run_counted, run_search, split_writer)
+                                            prompt, repair_writer, run_counted, run_search, split_writer,
+                                            take_thinking)
 from dance_rag_agentic.agent.prompts import (BACKGROUND_PROMPT, CHARACTER_PROMPT, FILLGAP_PROMPT, TECHNIQUE_PROMPT,
                                              UNSURE_PROMPT)
 from dance_rag_agentic.agent.checks import answers_question, decision_parallel, judge_claims, unsupported
@@ -164,6 +165,7 @@ class State:
     def show(self, label, value=None, data=None):
         """A labelled detail inside the current node; value may be a string (multi-line) or a list of lines.
         data: the same detail as structured data for the web viewer (probabilities, judged claims)."""
+        self.write_thinking()
         self.say(f"│ {label}")
         items = [] if value is None else value if isinstance(value, list) else [value]
         lines = [line for item in items for line in str(item).split("\n")]      # multi-line items keep the │
@@ -173,7 +175,22 @@ class State:
         for line in lines or ["(none)"]:
             self.say(f"│     {line}")
 
+    def write_thinking(self):
+        """The agents' reasoning since the last trace line, into the trace FILES only (.log and .jsonl). Called
+        before every detail, tool call and node end, so it sits where it happened. Not printed, not in the
+        transcript, not sent to event_sink: the API's visitors and the live viewer never see it."""
+        for agent_name, text in take_thinking():
+            if not self.log_path:
+                continue
+            with open(self.log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(f"│ thinking ({agent_name}, trace only)\n"
+                               + "".join(f"│ ┊   {line}\n" for line in text.split("\n")))
+            event = {"type": "thinking", "time": round(time.time(), 2), "agent": agent_name, "text": text}
+            with open(self.log_path.with_suffix(".jsonl"), "a", encoding="utf-8") as events_file:
+                events_file.write(json.dumps(event, ensure_ascii=False) + "\n")
+
     def log(self, node, message):
+        self.write_thinking()
         seconds = round(time.time() - self.node_started, 1)
         self.trace.append([node, message, seconds])
         tokens = METER.summary(since=self.node_token_mark)      # only nodes that called a model
@@ -754,6 +771,7 @@ def _report_tool_call(state, call, result):
     lines = str(result).split("\n")
     shown = lines[:TRACE_RESULT_LINES] + ([f"... ({len(lines) - TRACE_RESULT_LINES} more lines)"]
                                           if len(lines) > TRACE_RESULT_LINES else [])
+    state.write_thinking()                   # the reasoning that chose this call goes right above it
     state.say(f"│ ▸ {call}")
     for line in shown:
         state.say(f"│       {line[:150]}")
@@ -1214,6 +1232,7 @@ async def answer_question(question, use_judge=True, live=False, log_path=None, e
     to a file as they happen (and structured events to the .jsonl next to it); event_sink gets every event."""
     state = State(question=question, use_judge=use_judge, live=live, log_path=log_path, event_sink=event_sink)
     METER.reset()                                       # one question per run: count from zero
+    take_thinking()                                     # ... and no reasoning left over from an earlier run
     state.emit("start", question=question, answer_model=MODELS.answer, decision_model=MODELS.decision,
                use_judge=use_judge)
     node = ExtractEntities()
@@ -1224,6 +1243,7 @@ async def answer_question(question, use_judge=True, live=False, log_path=None, e
         try:
             node = await node.run(state)
         except CloudAccessError as error:                # no credits / not signed in: stop, say why
+            state.write_thinking()
             message = (f"STOPPED: the model server refused this account. {error}\n"
                        "Check `ollama signin` and the credits at https://ollama.com/settings (cloud models), "
                        "or pick a local model.")

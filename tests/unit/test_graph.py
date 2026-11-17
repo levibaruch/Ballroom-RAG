@@ -20,6 +20,57 @@ def test_trace_lines_are_written_to_the_log_while_working(tmp_path):
     assert "ExtractEntities" in log_path.read_text() and "Rumba" in log_path.read_text()
 
 
+def test_agent_thinking_goes_to_the_trace_files_only(tmp_path, capsys):
+    # the agents' reasoning was dropped; now it is kept in .log/.jsonl, but never printed or sent to the sink
+    import json
+    from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart
+    from dance_rag_agentic.agent.agents import record_thinking, take_thinking
+    from dance_rag_agentic.agent.graph import State
+    take_thinking()
+    record_thinking("answer writer", [ModelResponse(parts=[ThinkingPart(content="the chart says HT"),
+                                                            TextPart(content="Heel-toe [12.3].")])])
+    sent = []
+    log_path = tmp_path / "run.log"
+    state = State(question="q", live=True, log_path=log_path, event_sink=sent.append)
+    state.header("Answer")
+    state.log("Answer", "attempt 1")
+    thinking = [event for event in map(json.loads, log_path.with_suffix(".jsonl").read_text().splitlines())
+                if event["type"] == "thinking"]
+    assert thinking == [dict(thinking[0], agent="answer writer", text="the chart says HT")]
+    assert "the chart says HT" in log_path.read_text()
+    assert "the chart says HT" not in capsys.readouterr().out + "".join(state.transcript)
+    assert all(event["type"] != "thinking" for event in sent + state.events)
+    assert take_thinking() == []
+
+
+def test_agent_thinking_is_read_while_the_agent_runs():
+    # the reasoning was written at the end of the node, under all the tool calls; now each thought is available
+    # when the tool it chose runs, so the trace puts it right above that call
+    import asyncio
+    from pydantic_ai import Agent
+    from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
+    from pydantic_ai.models.function import FunctionModel
+    from dance_rag_agentic.agent.agents import run_counted, take_thinking
+
+    def model(messages, info):
+        if len(messages) == 1:
+            return ModelResponse(parts=[ThinkingPart(content="search the walks"), ToolCallPart("search", {})])
+        return ModelResponse(parts=[ThinkingPart(content="enough read"), TextPart(content="FOUND: walks")])
+
+    seen_by_the_tool = []
+    agent = Agent(FunctionModel(model), name="TECHNIQUE agent")
+
+    @agent.tool_plain
+    def search() -> str:
+        seen_by_the_tool.extend(take_thinking())
+        return "results"
+
+    take_thinking()
+    asyncio.run(run_counted(agent, "q"))
+    assert seen_by_the_tool == [("TECHNIQUE agent", "search the walks")]
+    assert take_thinking() == [("TECHNIQUE agent", "enough read")]
+
+
 def test_unsure_aspect_falls_back_to_all():
     from dance_rag_agentic.agent.graph import choose_aspect
     coin_toss = dict(choice="timing", probabilities={"timing": 0.36, "all": 0.36, "footwork": 0.09, "lead": 0.07})

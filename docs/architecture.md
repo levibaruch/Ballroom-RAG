@@ -106,6 +106,10 @@ from memory. Run one local model job at a time.
 decision model's probabilities as bars, tool calls, and judged claims. Then it shows the answer with its sources as
 tables. You can attach notes to a run or a step, and every run is saved in `cache/agentic/traces/`.
 
+The agents' reasoning (gpt-oss thinking, per model call) is saved in those trace files only: `│ thinking (…)` blocks
+in the `.log`, `thinking` events in the `.jsonl`. It is never printed, never shown in the viewer, and never sent to
+the API's visitors.
+
 ## The public API
 
 `apps/api.py` (FastAPI, docs at `/docs`) streams what the system does as server-sent events: routing, tool calls,

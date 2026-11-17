@@ -332,6 +332,7 @@ function groupEvents(events) {
     else if (event.type === "error") run.error = event;
     else if (event.type === "node") run.nodes.push({name: event.node, started: event.time, items: [], end: null});
     else if (event.type === "end" && run.nodes.length) run.nodes[run.nodes.length - 1].end = event;
+    else if (event.type === "thinking") continue;       // the agents' reasoning: kept in the trace files only
     else if (run.nodes.length) run.nodes[run.nodes.length - 1].items.push(event);
   }
   return run;
